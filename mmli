@@ -1,0 +1,45 @@
+#!/bin/bash
+
+set -euo pipefail
+
+if [ "$EUID" -ne 0 ]; then
+        echo "mammal mammale bale jan mammali mammale."
+        exit 85
+fi
+
+USERNAME=$SUDO_USER
+USER_UID=$(id -u "$USERNAME")
+USER_GID=$(id -g "$USERNAME")
+
+FS_FILE_PATH=/usr/local/etc/mmli/mmli.ext4
+FS_MAPPER_NAME=mmli.mapper
+FS_MAPPER_PATH=/dev/mapper/$FS_MAPPER_NAME
+DEFAULT_FS_SIZE_MB=5000
+FS_MOUNT_PATH=/media/$USERNAME/mmlmnt
+
+if [[ ! -e $FS_FILE_PATH ]]; then
+	mkdir -p $FS_FILE_PATH
+	rmdir $FS_FILE_PATH
+	dd if=/dev/zero of=$FS_FILE_PATH bs=1M count=$DEFAULT_FS_SIZE_MB > /dev/null 2>&1
+	cryptsetup luksFormat $FS_FILE_PATH
+	cryptsetup open $FS_FILE_PATH $FS_MAPPER_NAME
+	mkfs.ext4 $FS_MAPPER_PATH > /dev/null 2>&1
+	cryptsetup close $FS_MAPPER_NAME
+fi
+
+if findmnt -M $FS_MOUNT_PATH > /dev/null 2>&1; then
+	umount $FS_MOUNT_PATH
+	cryptsetup close $FS_MAPPER_NAME
+	echo "UnMounted."
+else
+	mkdir -p $FS_MOUNT_PATH
+	cryptsetup open $FS_FILE_PATH $FS_MAPPER_NAME
+	mount -o rw $FS_MAPPER_PATH $FS_MOUNT_PATH
+	if mountpoint -q "$FS_MOUNT_PATH"; then
+		chown -R "$USER_UID:$USER_GID" "$FS_MOUNT_PATH"
+		echo "Mounted."
+	else
+		echo "Failed to mount the drive."
+		exit 1
+	fi
+fi

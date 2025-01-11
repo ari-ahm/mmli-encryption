@@ -7,7 +7,7 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # List of required tools
-required_tools=("cryptsetup" "dd" "mkfs.ext4" "mount" "umount")
+required_tools=("cryptsetup" "mount")
 
 apt-get update
 # Check if each required tool is installed
